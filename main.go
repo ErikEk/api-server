@@ -28,6 +28,13 @@ type Address struct {
 
 var people []Person
 
+
+/* ENDCODE and send json
+u := User{Id: "US123", Balance: 8}
+	b := new(bytes.Buffer)
+	json.NewEncoder(b).Encode(u)
+	res, _ := http.Post("https://httpbin.org/post", "application/json; charset=utf-8", b)
+*/
 func GetPersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	for _, item := range people {
@@ -43,10 +50,12 @@ func GetPeopleEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 func CreatePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	fmt.Println(params)
 	var person Person
 	_ = json.NewDecoder(r.Body).Decode(&person)
 	person.ID = params["id"]
+	
+	fmt.Println(person.Firstname)
+	fmt.Println(person.Lastname)
 	people = append(people, person)
 	json.NewEncoder(w).Encode(people)
 }
