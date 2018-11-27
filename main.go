@@ -2,18 +2,20 @@ package main
 
 import (
 	//"bytes"
-	//"database/sql"
-	"fmt"
-	"net/http"
+	"bufio"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
+	"net/http"
+	"os"
+	"strings"
+	"syscall"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
-	//_ "github.com/go-sql-driver/mysql"
+	"golang.org/x/crypto/ssh/terminal"
 )
-
-
-
 
 type Person struct {
 	ID        string   `json:"id,omitempty`
@@ -26,7 +28,11 @@ type Address struct {
 	State string `json:"state,omitempty"`
 }
 
-var people []Person
+var (
+	people []Person
+	db *sql.DB
+	stmt *sql.Stmt
+)
 
 
 /* ENDCODE and send json
@@ -34,7 +40,34 @@ u := User{Id: "US123", Balance: 8}
 	b := new(bytes.Buffer)
 	json.NewEncoder(b).Encode(u)
 	res, _ := http.Post("https://httpbin.org/post", "application/json; charset=utf-8", b)
+	var body struct {
+		// httpbin.org sends back key/value pairs, no map[string][]string
+		Headers map[string]string `json:"headers"`
+		Origin  string            `json:"origin"`
+	}
+	json.NewDecoder(res.Body).Decode(&body)
+	fmt.Println(body)
 */
+
+/* PRINT FULL DATASET
+// query
+        rows, err := db.Query("SELECT * FROM userinfo")
+        checkErr(err)
+
+        for rows.Next() {
+            var uid int
+            var username string
+            var department string
+            var created string
+            err = rows.Scan(&uid, &username, &department, &created)
+            checkErr(err)
+            fmt.Println(uid)
+            fmt.Println(username)
+            fmt.Println(department)
+            fmt.Println(created)
+        }
+*/
+
 func GetPersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	for _, item := range people {
@@ -47,13 +80,56 @@ func GetPersonEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 func GetPeopleEndpoint(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(people)
+	var person Person
+
+	row := db.QueryRow("select id, firstname, lastname from gotest where id = ?;", 1)
+	err := row.Scan(&person.ID, &person.Firstname, &person.Lastname)
+	if err != nil {
+		// If no results send null
+		fmt.Println("No results")
+	} else {
+		fmt.Println(person.ID)
+		fmt.Println(person.Firstname)
+		fmt.Println(person.Lastname)
+	}
 }
 func CreatePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	var person Person
 	_ = json.NewDecoder(r.Body).Decode(&person)
 	person.ID = params["id"]
+
 	
+    res, err := stmt.Exec(6, "axel", "ek")
+    fmt.Println("ddd2")
+    me, ok := err.(*mysql.MySQLError)
+	if !ok {
+	    fmt.Print(err)
+	    return
+	}
+	if me.Number == 1062 {
+	    fmt.Println("It already exists in a database.")
+	    return
+	}
+
+	/*
+    if err.(*mysql.MySQLError).Number == 1062 { // 1062 duplicate entry
+    	fmt.Println("Already exists")
+    	return
+    }
+    if err != nil {
+    	fmt.Println("Other eeror:",err)
+    }
+    */
+    fmt.Println("ddd")
+    id, err := res.LastInsertId()
+    if err != nil {
+    	fmt.Println(err)
+    }
+
+    fmt.Println(id)
+
+
 	fmt.Println(person.Firstname)
 	fmt.Println(person.Lastname)
 	people = append(people, person)
@@ -70,6 +146,20 @@ func DeletePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func credentials() (string, string) {
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Print("Enter Username: ")
+	username, _ := reader.ReadString('\n')
+
+	fmt.Print("Enter Password: ")
+	bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
+
+	password := string(bytePassword)
+
+	return strings.TrimSpace(username), strings.TrimSpace(password)
+}
+
 func main() {
 	router := mux.NewRouter()
 	people = append(people, Person{ID: "1", Firstname: "John", Lastname: "Doe", Address: &Address{City: "City X", State: "State X"}})
@@ -77,7 +167,47 @@ func main() {
 	router.HandleFunc("/people", GetPeopleEndpoint).Methods("GET")
 	router.HandleFunc("/people/{id}", GetPersonEndpoint).Methods("GET")
 	router.HandleFunc("/people/{id}", CreatePersonEndpoint).Methods("POST")
-	router.HandleFunc("/people/{id}", DeletePersonEndpoint).Methods("DELETE")
+	//router.HandleFunc("/people/{id}", DeletePersonEndpoint).Methods("DELETE")
+
+	// Get user and password for MySQL database
+	//username, password := credentials()
+	// Temp
+	password := "asdfghjK1?"
+	var err error
+
+	db, err = sql.Open("mysql", "root:"+password+"@tcp(127.0.0.1:3306)/sys")
+	if err != nil {
+		fmt.Print(err.Error())
+	}
+
+	defer db.Close()
+
+	// make sure connection is available
+	err = db.Ping()
+	if err != nil {
+		fmt.Print(err.Error())
+	}
+
+	// Prepare a writer
+	stmt, err = db.Prepare("INSERT gotest SET id=?,firstname=?,lastname=?")
+    if err != nil {
+    	fmt.Println(err)
+    }
+
+	
+	var person Person
+
+	row := db.QueryRow("select id, firstname, lastname from gotest where id = ?;", 1)
+	err = row.Scan(&person.ID, &person.Firstname, &person.Lastname)
+	if err != nil {
+		// If no results send null
+		fmt.Println("No results")
+	} else {
+		fmt.Println(person.ID)
+		fmt.Println(person.Firstname)
+		fmt.Println(person.Lastname)
+	}
+
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
@@ -102,7 +232,7 @@ func main() {
 
 	// GET a person detail
 	router.GET("/person/:id", func(c *gin.Context) {
-		
+
 		id := c.Param("id")
 		row := db.QueryRow("select id, first_name, last_name from person where id = ?;", id)
 		err = row.Scan(&person.Id, &person.First_Name, &person.Last_Name)
@@ -120,7 +250,7 @@ func main() {
 		}
 		//c.JSON(http.StatusOK, result)
 	})
-	
+
 	// GET all persons
 	router.GET("/persons", func(c *gin.Context) {
 		var (
@@ -212,6 +342,6 @@ func main() {
 			"message": fmt.Sprintf("Successfully deleted user: %s", id),
 		})
 	})
-	
+
 	router.Run(":8080")
 }*/
