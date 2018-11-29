@@ -170,9 +170,8 @@ func main() {
 	//router.HandleFunc("/people/{id}", DeletePersonEndpoint).Methods("DELETE")
 
 	// Get user and password for MySQL database
-	//username, password := credentials()
+	username, password := credentials()
 	// Temp
-	password := "asdfghjK1?"
 	var err error
 
 	db, err = sql.Open("mysql", "root:"+password+"@tcp(127.0.0.1:3306)/sys")
