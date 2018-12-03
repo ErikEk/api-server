@@ -238,7 +238,7 @@ func main() {
 
 	ctx := context.Background()
 
-	b, err := ioutil.ReadFile("client_secret.json")
+	b, err := ioutil.ReadFile("clientsecret.json")
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
 	}

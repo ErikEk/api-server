@@ -51,7 +51,7 @@ u := User{Id: "US123", Balance: 8}
 
 /* PRINT FULL DATASET
 // query
-        rows, err := db.Query("SELECT * FROM userinfo")
+        rows, err := db.Query("SELECT * FROM gotest")
         checkErr(err)
 
         for rows.Next() {
@@ -101,7 +101,6 @@ func CreatePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	
     res, err := stmt.Exec(6, "axel", "ek")
-    fmt.Println("ddd2")
     me, ok := err.(*mysql.MySQLError)
 	if !ok {
 	    fmt.Print(err)
@@ -112,16 +111,6 @@ func CreatePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	    return
 	}
 
-	/*
-    if err.(*mysql.MySQLError).Number == 1062 { // 1062 duplicate entry
-    	fmt.Println("Already exists")
-    	return
-    }
-    if err != nil {
-    	fmt.Println("Other eeror:",err)
-    }
-    */
-    fmt.Println("ddd")
     id, err := res.LastInsertId()
     if err != nil {
     	fmt.Println(err)
@@ -172,7 +161,6 @@ func main() {
 	// Get user and password for MySQL database
 	//username, password := credentials()
 	// Temp
-	password := "asdfghjK1?"
 	var err error
 
 	db, err = sql.Open("mysql", "root:"+password+"@tcp(127.0.0.1:3306)/sys")
