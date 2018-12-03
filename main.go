@@ -159,7 +159,7 @@ func main() {
 	//router.HandleFunc("/people/{id}", DeletePersonEndpoint).Methods("DELETE")
 
 	// Get user and password for MySQL database
-	//username, password := credentials()
+	username, password := credentials()
 	// Temp
 	var err error
 
