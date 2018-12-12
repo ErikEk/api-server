@@ -1,2 +1,6 @@
 # api-server
-Test
+*GetAllUsers
+*GetUserById
+*GetImageFromBucket
+*Thumbnail image
+Remove user
